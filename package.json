@@ -6,7 +6,9 @@
     "build": "react-router build",
     "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
-    "typecheck": "react-router typegen && tsc"
+    "typecheck": "react-router typegen && tsc",
+    "format:write": "prettier --write \"app/**/*.{js,jsx,ts,tsx,json,css,md}\"",
+    "format:check": "prettier --check \"app/**/*.{js,jsx,ts,tsx,json,css,md}\""
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.7",
@@ -28,10 +30,18 @@
     "@types/node": "^20",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
+    "prettier": "^3.6.2",
     "tailwindcss": "^4.1.4",
     "tw-animate-css": "^1.3.6",
     "typescript": "^5.8.3",
     "vite": "^6.3.3",
     "vite-tsconfig-paths": "^5.1.4"
+  },
+  "prettier": {
+    "printWidth": 80,
+    "useTabs": false,
+    "tabWidth": 2,
+    "semi": true,
+    "singleQuote": false
   }
 }
