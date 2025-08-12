@@ -10,5 +10,5 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Login() {
-  return <LoginForm />;git 
+  return <LoginForm />;
 }
