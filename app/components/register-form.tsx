@@ -4,7 +4,6 @@ import { Card, CardContent } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 
-import placeholder from "./placeholder.svg";
 import shifttee from "./shifttee.svg";
 import { Link } from "react-router";
 
