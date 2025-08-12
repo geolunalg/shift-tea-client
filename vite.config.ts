@@ -11,10 +11,5 @@ export default defineConfig({
     watch: {
       usePolling: true
     }
-  },
-  // resolve: {
-  //   alias: {
-  //     "~": path.resolve(__dirname, "./app"),
-  //   }
-  // }
+  }
 });

@@ -5,6 +5,7 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 
 import placeholder from "./placeholder.svg";
+import shifttee from "./shifttee.svg";
 import { Link } from "react-router";
 
 export function LoginForm({
@@ -65,7 +66,7 @@ export function LoginForm({
           </form>
           <div className="bg-muted relative hidden md:block">
             <img
-              src={placeholder}
+              src={shifttee}
               alt="Image"
               className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
             />
