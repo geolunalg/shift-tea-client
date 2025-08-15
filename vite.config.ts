@@ -2,7 +2,8 @@ import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
-import path from "path";
+
+const HOST = process.env.SERVER_HOST || "localhost";
 
 export default defineConfig({
   plugins: [tailwindcss(), reactRouter(), tsconfigPaths()],
@@ -10,6 +11,12 @@ export default defineConfig({
     host: "0.0.0.0",
     watch: {
       usePolling: true
+    },
+    proxy: {
+      "/api": {
+        target: `http://${HOST}:8080`,
+        changeOrigin: true
+      }
     }
   }
 });

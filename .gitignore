@@ -4,6 +4,8 @@
 .devcontainer
 .vscode
 
+queries.sql
+
 # React Router
 /.react-router/
 /build/

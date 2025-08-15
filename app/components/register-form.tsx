@@ -5,17 +5,70 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 
 import shifttee from "./shifttee.svg";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
+import React, { useState } from "react";
 
 export function RegisterForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    const formData = new FormData(event.currentTarget);
+    const data = Object.fromEntries(formData);
+
+    if (data.password !== data.passwordConfirm) {
+      setError("password do not match");
+      setLoading(false);
+      return;
+    }
+
+    const reqData = {
+      facility: {
+        facilityName: data.facilityName,
+      },
+      user: {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        password: data.password,
+        isAdmin: true,
+      },
+    };
+
+    try {
+      const res = await fetch("/api/v1/facilities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(reqData),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        setError(err.message || "Something went wrong");
+        return;
+      }
+
+      navigate("/");
+    } catch (err: any) {
+      setError(err.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card className="overflow-hidden p-0">
         <CardContent className="grid p-0 md:grid-cols-2">
-          <form className="p-6 md:p-8">
+          <form onSubmit={handleSubmit} className="p-6 md:p-8">
             <div className="flex flex-col gap-6">
               <div className="flex flex-col items-center text-center">
                 <h1 className="text-2xl font-bold">Welcome</h1>
@@ -27,8 +80,9 @@ export function RegisterForm({
                 <Label htmlFor="facility-name">Facility Name</Label>
                 <Input
                   id="facility-name"
+                  name="facilityName"
                   type="text"
-                  placeholder="The Justice League"
+                  placeholder="Acme Corporation"
                   required
                 />
               </div>
@@ -36,6 +90,7 @@ export function RegisterForm({
                 <Label htmlFor="first-name">First Name</Label>
                 <Input
                   id="first-name"
+                  name="firstName"
                   type="text"
                   placeholder="John"
                   required
@@ -45,6 +100,7 @@ export function RegisterForm({
                 <Label htmlFor="last-name">Last Name</Label>
                 <Input
                   id="last-name"
+                  name="lastName"
                   type="text"
                   placeholder="Smith"
                   required
@@ -54,8 +110,9 @@ export function RegisterForm({
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="john.smith@example.com"
                   required
                 />
               </div>
@@ -63,6 +120,7 @@ export function RegisterForm({
                 <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
+                  name="password"
                   type="password"
                   placeholder="password"
                   required
@@ -71,14 +129,16 @@ export function RegisterForm({
               <div className="grid gap-3">
                 <Label htmlFor="confirm-pw">Confirm Password</Label>
                 <Input
-                  id="confirm-pw"
+                  id="password-confirm"
+                  name="passwordConfirm"
                   type="password"
                   placeholder="password"
                   required
                 />
               </div>
-              <Button type="submit" className="w-full">
-                Register
+              {error && <p className="text-red-500 text-sm">{error}</p>}
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Registering..." : "Register"}
               </Button>
             </div>
           </form>
