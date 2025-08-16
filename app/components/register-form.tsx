@@ -44,6 +44,11 @@ export function RegisterForm({
     };
 
     try {
+      if (data.password !== data.passwordConfirm) {
+        setError("password do not match");
+        return;
+      }
+
       const res = await fetch("/api/v1/facilities", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -52,7 +57,7 @@ export function RegisterForm({
 
       if (!res.ok) {
         const err = await res.json();
-        setError(err.message || "Something went wrong");
+        setError(err.error || "Something went wrong");
         return;
       }
 
