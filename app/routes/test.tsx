@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from "react";
 
 export interface Shift {
-  id: string
-  schedule: string
-  staff: Staff[]
+  id: string;
+  schedule: string;
+  staff: Staff[];
 }
 
 export interface Staff {
-  id: string
-  name: string
-  days: string[]
+  id: string;
+  name: string;
+  days: string[];
 }
 
 // Example API response (replace with fetch)
@@ -55,8 +55,12 @@ const apiResponse = {
 };
 
 function Playground() {
-  const daysOfMonth = new Date(2025, apiResponse.month, 0).getDate();
-  const daysOfWeek = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+  const daysOfMonth = new Date(
+    apiResponse.year,
+    apiResponse.month,
+    0,
+  ).getDate();
+  const abbDaysOfWeek = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
   const [shifts, setShifts] = useState<Shift[]>([]);
 
@@ -101,9 +105,7 @@ function Playground() {
 
   const updateShiftLabel = (shiftId: string, value: string) => {
     setShifts(
-      shifts.map((s) =>
-        s.id === shiftId ? { ...s, label: value } : s
-      )
+      shifts.map((s) => (s.id === shiftId ? { ...s, label: value } : s)),
     );
   };
 
@@ -113,18 +115,18 @@ function Playground() {
       shifts.map((s) =>
         s.id === shiftId
           ? {
-            ...s,
-            staff: [
-              ...s.staff,
-              {
-                id: `staff-${Date.now()}`,
-                name: "",
-                days: Array(daysOfMonth).fill(""),
-              },
-            ],
-          }
-          : s
-      )
+              ...s,
+              staff: [
+                ...s.staff,
+                {
+                  id: `staff-${Date.now()}`,
+                  name: "",
+                  days: Array(daysOfMonth).fill(""),
+                },
+              ],
+            }
+          : s,
+      ),
     );
   };
 
@@ -133,45 +135,54 @@ function Playground() {
       shifts.map((s) =>
         s.id === shiftId
           ? { ...s, staff: s.staff.filter((st) => st.id !== staffId) }
-          : s
-      )
+          : s,
+      ),
     );
   };
 
-  const updateStaffLabel = (shiftId: string, staffId: string, value: string) => {
+  const updateStaffLabel = (
+    shiftId: string,
+    staffId: string,
+    value: string,
+  ) => {
     setShifts(
       shifts.map((s) =>
         s.id === shiftId
           ? {
-            ...s,
-            staff: s.staff.map((st) =>
-              st.id === staffId ? { ...st, label: value } : st
-            ),
-          }
-          : s
-      )
+              ...s,
+              staff: s.staff.map((st) =>
+                st.id === staffId ? { ...st, label: value } : st,
+              ),
+            }
+          : s,
+      ),
     );
   };
 
-  const updateDay = (shiftId: string, staffId: string, dayIndex: number, value: string) => {
+  const updateDay = (
+    shiftId: string,
+    staffId: string,
+    dayIndex: number,
+    value: string,
+  ) => {
     setShifts(
       shifts.map((s) =>
         s.id === shiftId
           ? {
-            ...s,
-            staff: s.staff.map((st) =>
-              st.id === staffId
-                ? {
-                  ...st,
-                  days: st.days.map((d, i) =>
-                    i === dayIndex ? value.slice(0, 1) : d
-                  ),
-                }
-                : st
-            ),
-          }
-          : s
-      )
+              ...s,
+              staff: s.staff.map((st) =>
+                st.id === staffId
+                  ? {
+                      ...st,
+                      days: st.days.map((d, i) =>
+                        i === dayIndex ? value.slice(0, 1) : d,
+                      ),
+                    }
+                  : st,
+              ),
+            }
+          : s,
+      ),
     );
   };
 
@@ -196,10 +207,10 @@ function Playground() {
               <th className="border border-gray-400 px-2 py-1">NAME / SHIFT</th>
               {[...Array(daysOfMonth)].map((_, i) => {
                 const day = i + 1;
-                const dow = new Date(
+                const abbdow = new Date(
                   apiResponse.year,
                   apiResponse.month - 1,
-                  day
+                  day,
                 ).getDay();
                 return (
                   <th
@@ -208,7 +219,7 @@ function Playground() {
                   >
                     {day}
                     <br />
-                    {daysOfWeek[dow]}
+                    {abbDaysOfWeek[abbdow]}
                   </th>
                 );
               })}
