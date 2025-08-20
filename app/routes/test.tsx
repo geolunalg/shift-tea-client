@@ -12,8 +12,27 @@ export interface Staff {
   days: string[];
 }
 
+const apiAllStaffSampleResponse = [
+  {
+    userId: "4898fe20-f603-40cf-9534-a319112b6baa",
+    name: "bruce banner"
+  },
+  {
+    userId: "7b02966a-7255-41da-a86f-504fff9fc518",
+    name: "tony stark"
+  },
+  {
+    userId: "860a4a87-558b-41ce-bd19-edb12df286fa",
+    name: "natasha romanoff"
+  },
+  {
+    userId: "ce464ad3-6de5-45a0-8ab7-c2bd22d89247",
+    name: "steve rogers"
+  }
+]
+
 // Example API response (replace with fetch)
-const apiResponse = {
+const apiShiftsSampleResponse = {
   year: 2025,
   month: 7,
   shifts: [
@@ -54,10 +73,75 @@ const apiResponse = {
   ],
 };
 
+
+
+
+function StaffInput({
+  value,
+  onSelect,
+}: {
+  value: string;
+  onSelect: (id: string, name: string) => void;
+}) {
+  const [query, setQuery] = useState(value);
+  const [showOptions, setShowOptions] = useState(false);
+
+  // Filter available staff
+  const filtered = apiAllStaffSampleResponse.filter((s) =>
+    s.name.toLowerCase().includes(query.toLowerCase())
+  );
+
+  const handleSelect = (staff: { userId: string; name: string }) => {
+    setQuery(staff.name);
+    onSelect(staff.userId, staff.name);
+    setShowOptions(false);
+  };
+
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setShowOptions(true);
+        }}
+        onFocus={() => setShowOptions(true)}
+        onBlur={() => setTimeout(() => setShowOptions(false), 150)}
+        placeholder="Select staff..."
+        className="w-full px-1 py-0.5 border rounded focus:outline-none focus:ring-1 focus:ring-blue-400"
+      />
+
+      {showOptions && filtered.length > 0 && (
+        <ul className="absolute left-0 right-0 mt-1 max-h-40 overflow-y-auto border border-gray-300 bg-white rounded shadow-lg z-10">
+          {filtered.map((s) => (
+            <li
+              key={s.userId}
+              onMouseDown={() => handleSelect(s)} // prevent blur removing dropdown
+              className="px-2 py-1 cursor-pointer hover:bg-blue-100"
+            >
+              {s.name}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+
+
+
+
+
+
+
+
+
 function Playground() {
   const daysOfMonth = new Date(
-    apiResponse.year,
-    apiResponse.month,
+    apiShiftsSampleResponse.year,
+    apiShiftsSampleResponse.month,
     0,
   ).getDate();
   const abbDaysOfWeek = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
@@ -66,7 +150,7 @@ function Playground() {
 
   // Load API into shifts structure
   useEffect(() => {
-    const shifts: Shift[] = apiResponse.shifts.map((shift) => {
+    const shifts: Shift[] = apiShiftsSampleResponse.shifts.map((shift) => {
       const staff: Staff[] = shift.staff.map((s) => {
         const daysArr = Array(daysOfMonth).fill("");
         s.days.forEach((d) => {
@@ -119,16 +203,17 @@ function Playground() {
             staff: [
               ...s.staff,
               {
-                id: `staff-${Date.now()}`,
+                id: "", // will be set once user selects a real staff
                 name: "",
                 days: Array(daysOfMonth).fill(""),
               },
             ],
           }
-          : s,
-      ),
+          : s
+      )
     );
   };
+
 
   const deleteStaff = (shiftId: string, staffId: string) => {
     setShifts(
@@ -208,8 +293,8 @@ function Playground() {
               {[...Array(daysOfMonth)].map((_, i) => {
                 const day = i + 1;
                 const abbdow = new Date(
-                  apiResponse.year,
-                  apiResponse.month - 1,
+                  apiShiftsSampleResponse.year,
+                  apiShiftsSampleResponse.month - 1,
                   day,
                 ).getDay();
                 return (
@@ -267,15 +352,29 @@ function Playground() {
                 {shift.staff.map((staff) => (
                   <tr key={staff.id}>
                     <td className="border border-gray-400 px-2 py-1">
-                      <input
-                        type="text"
+
+
+                      <StaffInput
                         value={staff.name}
-                        onChange={(e) =>
-                          updateStaffLabel(shift.id, staff.id, e.target.value)
+                        onSelect={(userId, name) =>
+                          setShifts(
+                            shifts.map((s) =>
+                              s.id === shift.id
+                                ? {
+                                  ...s,
+                                  staff: s.staff.map((st) =>
+                                    st.id === staff.id || st.id === ""  // match either temp row or exact row
+                                      ? { ...st, id: userId, name }
+                                      : st
+                                  ),
+                                }
+                                : s
+                            )
+                          )
                         }
-                        placeholder="Enter name..."
-                        className="w-full px-1 py-0.5 border rounded focus:outline-none focus:ring-1 focus:ring-blue-400"
                       />
+
+
                     </td>
                     {staff.days.map((val, i) => (
                       <td
