@@ -105,7 +105,7 @@ function Playground() {
 
   const updateShiftLabel = (shiftId: string, value: string) => {
     setShifts(
-      shifts.map((s) => (s.id === shiftId ? { ...s, label: value } : s)),
+      shifts.map((s) => (s.id === shiftId ? { ...s, schedule: value } : s)),
     );
   };
 
@@ -115,16 +115,16 @@ function Playground() {
       shifts.map((s) =>
         s.id === shiftId
           ? {
-              ...s,
-              staff: [
-                ...s.staff,
-                {
-                  id: `staff-${Date.now()}`,
-                  name: "",
-                  days: Array(daysOfMonth).fill(""),
-                },
-              ],
-            }
+            ...s,
+            staff: [
+              ...s.staff,
+              {
+                id: `staff-${Date.now()}`,
+                name: "",
+                days: Array(daysOfMonth).fill(""),
+              },
+            ],
+          }
           : s,
       ),
     );
@@ -149,11 +149,11 @@ function Playground() {
       shifts.map((s) =>
         s.id === shiftId
           ? {
-              ...s,
-              staff: s.staff.map((st) =>
-                st.id === staffId ? { ...st, label: value } : st,
-              ),
-            }
+            ...s,
+            staff: s.staff.map((st) =>
+              st.id === staffId ? { ...st, name: value } : st,
+            ),
+          }
           : s,
       ),
     );
@@ -169,18 +169,18 @@ function Playground() {
       shifts.map((s) =>
         s.id === shiftId
           ? {
-              ...s,
-              staff: s.staff.map((st) =>
-                st.id === staffId
-                  ? {
-                      ...st,
-                      days: st.days.map((d, i) =>
-                        i === dayIndex ? value.slice(0, 1) : d,
-                      ),
-                    }
-                  : st,
-              ),
-            }
+            ...s,
+            staff: s.staff.map((st) =>
+              st.id === staffId
+                ? {
+                  ...st,
+                  days: st.days.map((d, i) =>
+                    i === dayIndex ? value.slice(0, 1) : d,
+                  ),
+                }
+                : st,
+            ),
+          }
           : s,
       ),
     );
