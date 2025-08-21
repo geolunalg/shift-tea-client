@@ -42,7 +42,7 @@ export function LoginForm({
       navigate("/schedule");
     } catch (err: any) {
       console.log(err);
-      setError(`CATCH: ${err.message}` || "Something went wrong");
+      setError(err.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -89,8 +89,8 @@ export function LoginForm({
                 />
               </div>
               {error && <p className="text-red-500 text-sm">{error}</p>}
-              <Button type="submit" className="w-full">
-                Login
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Logging in..." : "Login"}
               </Button>
               <div className="text-center text-sm">
                 Don&apos;t have an account?{" "}
