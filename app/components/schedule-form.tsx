@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 
+const token = "YOUR_JWT_TOKEN"; // keep this safe!
+
 export interface Shift {
   id: string;
   schedule: string;
@@ -12,79 +14,52 @@ export interface Staff {
   days: string[];
 }
 
-const apiAllStaffSampleResponse = [
-  {
-    userId: "4898fe20-f603-40cf-9534-a319112b6baa",
-    name: "bruce banner"
-  },
-  {
-    userId: "7b02966a-7255-41da-a86f-504fff9fc518",
-    name: "tony stark"
-  },
-  {
-    userId: "860a4a87-558b-41ce-bd19-edb12df286fa",
-    name: "natasha romanoff"
-  },
-  {
-    userId: "ce464ad3-6de5-45a0-8ab7-c2bd22d89247",
-    name: "steve rogers"
-  }
-]
+async function getAllStaff() {
+  const res = await fetch("/api/v1/users", {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+  });
 
-// Example API response (replace with fetch)
-const apiShiftsSampleResponse = {
-  year: 2025,
-  month: 7,
-  shifts: [
-    {
-      id: "d380d303-53eb-4e81-9d14-eca03cddad57",
-      startTime: "08:00:00",
-      endTime: "12:00:00",
-      staff: [
-        {
-          userId: "4898fe20-f603-40cf-9534-a319112b6baa",
-          name: "bruce banner",
-          days: [9, 10, 11, 12, 15, 16, 17, 18],
-        },
-        {
-          userId: "7b02966a-7255-41da-a86f-504fff9fc518",
-          name: "tony stark",
-          days: [1, 2, 3, 4, 7, 8, 9, 10],
-        },
-      ],
+  if (res.ok) return res.json();
+  const err = await res.json();
+  throw new Error(`Failed to get users: ${err.error}`);
+}
+
+async function getScheduleShifts(year?: number, month?: number) {
+  let url = "/api/v1/shifts";
+  if (year && month) {
+    url += `?year=${year}&month=${month}`;
+  }
+
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
     },
-    {
-      id: "c59a15d8-2251-4cf6-99ee-dea9e8ecdae4",
-      startTime: "12:00:00",
-      endTime: "16:00:00",
-      staff: [
-        {
-          userId: "860a4a87-558b-41ce-bd19-edb12df286fa",
-          name: "natasha romanoff",
-          days: [12, 13, 14, 15, 18, 19, 20, 21],
-        },
-        {
-          userId: "ce464ad3-6de5-45a0-8ab7-c2bd22d89247",
-          name: "steve rogers",
-          days: [16, 17, 18, 19, 22, 23, 24, 25],
-        },
-      ],
-    },
-  ],
-};
+  });
+
+  if (res.ok) return res.json();
+  const err = await res.json();
+  throw new Error(`Failed to get shifts: ${err.error}`);
+}
 
 function StaffInput({
   value,
   onSelect,
+  staffOptions,
 }: {
   value: string;
   onSelect: (id: string, name: string) => void;
+  staffOptions: { userId: string; name: string }[];
 }) {
   const [query, setQuery] = useState(value);
   const [showOptions, setShowOptions] = useState(false);
 
-  // Filter available staff
-  const filtered = apiAllStaffSampleResponse.filter((s) =>
+  const filtered = staffOptions.filter((s) =>
     s.name.toLowerCase().includes(query.toLowerCase())
   );
 
@@ -114,7 +89,7 @@ function StaffInput({
           {filtered.map((s) => (
             <li
               key={s.userId}
-              onMouseDown={() => handleSelect(s)} // prevent blur removing dropdown
+              onMouseDown={() => handleSelect(s)}
               className="px-2 py-1 cursor-pointer hover:bg-blue-100"
             >
               {s.name}
@@ -126,41 +101,65 @@ function StaffInput({
   );
 }
 
-export function ScheduleForm({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
-  const daysOfMonth = new Date(
-    apiShiftsSampleResponse.year,
-    apiShiftsSampleResponse.month,
-    0,
-  ).getDate();
-  const abbDaysOfWeek = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
-
+export function ScheduleForm() {
+  const [staffOptions, setStaffOptions] = useState<
+    { userId: string; name: string }[]
+  >([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
+  const [year, setYear] = useState<number>(new Date().getFullYear());
+  const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
 
-  // Load API into shifts structure
+  const abbDaysOfWeek = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+  const daysOfMonth = new Date(year, month, 0).getDate();
+
+  // Fetch staff on mount
   useEffect(() => {
-    const shifts: Shift[] = apiShiftsSampleResponse.shifts.map((shift) => {
-      const staff: Staff[] = shift.staff.map((s) => {
-        const daysArr = Array(daysOfMonth).fill("");
-        s.days.forEach((d) => {
-          if (d <= daysOfMonth) daysArr[d - 1] = "x";
-        });
-        return {
-          id: s.userId,
-          name: s.name,
-          days: daysArr,
-        };
-      });
-      return {
-        id: shift.id,
-        schedule: `${shift.startTime.slice(0, 5)} - ${shift.endTime.slice(0, 5)}`,
-        staff,
-      };
-    });
-    setShifts(shifts);
+    getAllStaff()
+      .then(setStaffOptions)
+      .catch((err) => console.error(err));
   }, []);
+
+  // Fetch shifts whenever year or month changes
+  useEffect(() => {
+    async function loadShifts() {
+      try {
+        const shiftsRes = await getScheduleShifts(year, month);
+
+        // Update year & month from backend response (in case they differ)
+        setYear(shiftsRes.year);
+        setMonth(shiftsRes.month);
+
+        const daysOfMonth = new Date(shiftsRes.year, shiftsRes.month, 0).getDate();
+
+        const normalizedShifts: Shift[] = shiftsRes.shifts.map((shift: any) => {
+          const staff: Staff[] = shift.staff.map((s: any) => {
+            const daysArr = Array(daysOfMonth).fill("");
+            s.days.forEach((d: number) => {
+              if (d <= daysOfMonth) daysArr[d - 1] = "x";
+            });
+            return {
+              id: s.userId,
+              name: s.name,
+              days: daysArr,
+            };
+          });
+          return {
+            id: shift.id,
+            schedule: `${shift.startTime.slice(0, 5)} - ${shift.endTime.slice(
+              0,
+              5
+            )}`,
+            staff,
+          };
+        });
+
+        setShifts(normalizedShifts);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    loadShifts();
+  }, [year, month]);
 
   // === Shift actions ===
   const addShift = () => {
@@ -180,11 +179,10 @@ export function ScheduleForm({
 
   const updateShiftLabel = (shiftId: string, value: string) => {
     setShifts(
-      shifts.map((s) => (s.id === shiftId ? { ...s, schedule: value } : s)),
+      shifts.map((s) => (s.id === shiftId ? { ...s, schedule: value } : s))
     );
   };
 
-  // === Staff actions ===
   const addStaff = (shiftId: string) => {
     setShifts(
       shifts.map((s) =>
@@ -194,7 +192,7 @@ export function ScheduleForm({
             staff: [
               ...s.staff,
               {
-                id: "", // will be set once user selects a real staff
+                id: "",
                 name: "",
                 days: Array(daysOfMonth).fill(""),
               },
@@ -205,33 +203,13 @@ export function ScheduleForm({
     );
   };
 
-
   const deleteStaff = (shiftId: string, staffId: string) => {
     setShifts(
       shifts.map((s) =>
         s.id === shiftId
           ? { ...s, staff: s.staff.filter((st) => st.id !== staffId) }
-          : s,
-      ),
-    );
-  };
-
-  const updateStaffLabel = (
-    shiftId: string,
-    staffId: string,
-    value: string,
-  ) => {
-    setShifts(
-      shifts.map((s) =>
-        s.id === shiftId
-          ? {
-            ...s,
-            staff: s.staff.map((st) =>
-              st.id === staffId ? { ...st, name: value } : st,
-            ),
-          }
-          : s,
-      ),
+          : s
+      )
     );
   };
 
@@ -239,7 +217,7 @@ export function ScheduleForm({
     shiftId: string,
     staffId: string,
     dayIndex: number,
-    value: string,
+    value: string
   ) => {
     setShifts(
       shifts.map((s) =>
@@ -251,27 +229,53 @@ export function ScheduleForm({
                 ? {
                   ...st,
                   days: st.days.map((d, i) =>
-                    i === dayIndex ? value.slice(0, 1) : d,
+                    i === dayIndex ? value.slice(0, 1) : d
                   ),
                 }
-                : st,
+                : st
             ),
           }
-          : s,
-      ),
+          : s
+      )
     );
   };
 
   return (
     <>
-      {/* Add Shift Button */}
-      <div className="flex gap-2">
+      {/* Controls */}
+      <div className="flex gap-4 mb-4 items-center">
         <button
           onClick={addShift}
           className="px-3 py-1 bg-green-500 text-white rounded"
         >
           + Add Shift
         </button>
+
+        {/* Year Selector */}
+        <select
+          value={year}
+          onChange={(e) => setYear(Number(e.target.value))}
+          className="border px-2 py-1 rounded"
+        >
+          {Array.from({ length: 5 }, (_, i) => year - 2 + i).map((y) => (
+            <option key={y} value={y}>
+              {y}
+            </option>
+          ))}
+        </select>
+
+        {/* Month Selector */}
+        <select
+          value={month}
+          onChange={(e) => setMonth(Number(e.target.value))}
+          className="border px-2 py-1 rounded"
+        >
+          {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+            <option key={m} value={m}>
+              {new Date(0, m - 1).toLocaleString("default", { month: "long" })}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="overflow-x-auto">
@@ -281,11 +285,7 @@ export function ScheduleForm({
               <th className="border border-gray-400 px-2 py-1">NAME / SHIFT</th>
               {[...Array(daysOfMonth)].map((_, i) => {
                 const day = i + 1;
-                const abbdow = new Date(
-                  apiShiftsSampleResponse.year,
-                  apiShiftsSampleResponse.month - 1,
-                  day,
-                ).getDay();
+                const abbdow = new Date(year, month - 1, day).getDay();
                 return (
                   <th
                     key={day}
@@ -339,12 +339,11 @@ export function ScheduleForm({
 
                 {/* Staff rows */}
                 {shift.staff.map((staff) => (
-                  <tr key={staff.id}>
+                  <tr key={staff.id || Math.random()}>
                     <td className="border border-gray-400 px-2 py-1">
-
-
                       <StaffInput
                         value={staff.name}
+                        staffOptions={staffOptions}
                         onSelect={(userId, name) =>
                           setShifts(
                             shifts.map((s) =>
@@ -352,7 +351,7 @@ export function ScheduleForm({
                                 ? {
                                   ...s,
                                   staff: s.staff.map((st) =>
-                                    st.id === staff.id || st.id === ""  // match either temp row or exact row
+                                    st.id === staff.id || st.id === ""
                                       ? { ...st, id: userId, name }
                                       : st
                                   ),
@@ -362,8 +361,6 @@ export function ScheduleForm({
                           )
                         }
                       />
-
-
                     </td>
                     {staff.days.map((val, i) => (
                       <td
@@ -399,4 +396,3 @@ export function ScheduleForm({
     </>
   );
 }
-
