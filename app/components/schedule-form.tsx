@@ -19,7 +19,7 @@ async function getAllStaff() {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
     },
   });
 
@@ -38,13 +38,62 @@ async function getScheduleShifts(year?: number, month?: number) {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
     },
   });
 
   if (res.ok) return res.json();
   const err = await res.json();
   throw new Error(`Failed to get shifts: ${err.error}`);
+}
+
+function buildSchedulePayload(year: number, month: number, shifts: Shift[]) {
+  return {
+    year,
+    month,
+    shifts: shifts.map((shift) => {
+      const [startTime, endTime] = shift.schedule.split(" - ");
+
+      return {
+        startTime,
+        endTime,
+        staff: shift.staff.map((st) => {
+          const days: number[] = st.days
+            .map((d, i) => (d ? i + 1 : null)) // if marked, return day number
+            .filter((d): d is number => d !== null); // remove nulls
+
+          return {
+            userId: st.id,
+            days,
+          };
+        }),
+      };
+    }),
+  };
+}
+
+async function saveSchedule(year: number, month: number, shifts: Shift[]) {
+  const payload = buildSchedulePayload(year, month, shifts);
+
+  const res = await fetch("/api/v1/shifts", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(`Failed to save scheduel: ${err.error}`);
+    return;
+  }
+
+  const data = await res.json();
+  if (data.failed > 0) {
+    throw new Error("Unable to set all schedules");
+  }
 }
 
 function StaffInput({
@@ -60,7 +109,7 @@ function StaffInput({
   const [showOptions, setShowOptions] = useState(false);
 
   const filtered = staffOptions.filter((s) =>
-    s.name.toLowerCase().includes(query.toLowerCase())
+    s.name.toLowerCase().includes(query.toLowerCase()),
   );
 
   const handleSelect = (staff: { userId: string; name: string }) => {
@@ -129,7 +178,11 @@ export function ScheduleForm() {
         setYear(shiftsRes.year);
         setMonth(shiftsRes.month);
 
-        const daysOfMonth = new Date(shiftsRes.year, shiftsRes.month, 0).getDate();
+        const daysOfMonth = new Date(
+          shiftsRes.year,
+          shiftsRes.month,
+          0,
+        ).getDate();
 
         const normalizedShifts: Shift[] = shiftsRes.shifts.map((shift: any) => {
           const staff: Staff[] = shift.staff.map((s: any) => {
@@ -147,7 +200,7 @@ export function ScheduleForm() {
             id: shift.id,
             schedule: `${shift.startTime.slice(0, 5)} - ${shift.endTime.slice(
               0,
-              5
+              5,
             )}`,
             staff,
           };
@@ -179,7 +232,7 @@ export function ScheduleForm() {
 
   const updateShiftLabel = (shiftId: string, value: string) => {
     setShifts(
-      shifts.map((s) => (s.id === shiftId ? { ...s, schedule: value } : s))
+      shifts.map((s) => (s.id === shiftId ? { ...s, schedule: value } : s)),
     );
   };
 
@@ -188,18 +241,18 @@ export function ScheduleForm() {
       shifts.map((s) =>
         s.id === shiftId
           ? {
-            ...s,
-            staff: [
-              ...s.staff,
-              {
-                id: "",
-                name: "",
-                days: Array(daysOfMonth).fill(""),
-              },
-            ],
-          }
-          : s
-      )
+              ...s,
+              staff: [
+                ...s.staff,
+                {
+                  id: "",
+                  name: "",
+                  days: Array(daysOfMonth).fill(""),
+                },
+              ],
+            }
+          : s,
+      ),
     );
   };
 
@@ -208,8 +261,8 @@ export function ScheduleForm() {
       shifts.map((s) =>
         s.id === shiftId
           ? { ...s, staff: s.staff.filter((st) => st.id !== staffId) }
-          : s
-      )
+          : s,
+      ),
     );
   };
 
@@ -217,26 +270,26 @@ export function ScheduleForm() {
     shiftId: string,
     staffId: string,
     dayIndex: number,
-    value: string
+    value: string,
   ) => {
     setShifts(
       shifts.map((s) =>
         s.id === shiftId
           ? {
-            ...s,
-            staff: s.staff.map((st) =>
-              st.id === staffId
-                ? {
-                  ...st,
-                  days: st.days.map((d, i) =>
-                    i === dayIndex ? value.slice(0, 1) : d
-                  ),
-                }
-                : st
-            ),
-          }
-          : s
-      )
+              ...s,
+              staff: s.staff.map((st) =>
+                st.id === staffId
+                  ? {
+                      ...st,
+                      days: st.days.map((d, i) =>
+                        i === dayIndex ? value.slice(0, 1) : d,
+                      ),
+                    }
+                  : st,
+              ),
+            }
+          : s,
+      ),
     );
   };
 
@@ -277,6 +330,14 @@ export function ScheduleForm() {
           ))}
         </select>
       </div>
+
+      {/* Save schedule */}
+      <button
+        onClick={() => saveSchedule(year, month, shifts)}
+        className="px-3 py-1 bg-green-600 text-white rounded"
+      >
+        💾 Save Schedule
+      </button>
 
       <div className="overflow-x-auto">
         <table className="table-auto border-collapse border border-gray-400 w-full text-sm text-left">
@@ -349,15 +410,15 @@ export function ScheduleForm() {
                             shifts.map((s) =>
                               s.id === shift.id
                                 ? {
-                                  ...s,
-                                  staff: s.staff.map((st) =>
-                                    st.id === staff.id || st.id === ""
-                                      ? { ...st, id: userId, name }
-                                      : st
-                                  ),
-                                }
-                                : s
-                            )
+                                    ...s,
+                                    staff: s.staff.map((st) =>
+                                      st.id === staff.id || st.id === ""
+                                        ? { ...st, id: userId, name }
+                                        : st,
+                                    ),
+                                  }
+                                : s,
+                            ),
                           )
                         }
                       />
