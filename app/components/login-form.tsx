@@ -7,6 +7,7 @@ import { Label } from "~/components/ui/label";
 import shifttee from "./shifttee.svg";
 import { Link, useNavigate } from "react-router";
 import React, { useState } from "react";
+import { useAuth } from "~/context/AuthContext";
 
 export function LoginForm({
   className,
@@ -15,6 +16,7 @@ export function LoginForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -38,7 +40,8 @@ export function LoginForm({
       }
 
       const data = await res.json();
-      localStorage.setItem("token", data.token);
+      // localStorage.setItem("token", data.token);
+      login(data.token);
       navigate("/schedule");
     } catch (err: any) {
       console.log(err);
