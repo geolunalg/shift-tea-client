@@ -6,6 +6,8 @@
 
 queries.sql
 
+.DS_Store
+
 # React Router
 /.react-router/
 /build/
